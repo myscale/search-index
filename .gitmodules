@@ -1,0 +1,24 @@
+[submodule "contrib/faiss"]
+	path = contrib/faiss
+	url = git@github.com:myscale/faiss.git
+[submodule "contrib/scann/contrib/abseil-cpp"]
+	path = contrib/scann/contrib/abseil-cpp
+	url = https://github.com/abseil/abseil-cpp.git
+[submodule "contrib/scann/contrib/nsync"]
+	path = contrib/scann/contrib/nsync
+	url = https://github.com/google/nsync.git
+[submodule "contrib/scann/contrib/double-conversion"]
+	path = contrib/scann/contrib/double-conversion
+	url = https://github.com/google/double-conversion.git
+[submodule "contrib/scann/contrib/protobuf"]
+	path = contrib/scann/contrib/protobuf
+	url = https://github.com/protocolbuffers/protobuf
+[submodule "contrib/scann/contrib/cnpy"]
+	path = contrib/scann/contrib/cnpy
+	url = https://github.com/rogersce/cnpy.git
+[submodule "contrib/thread-pool"]
+	path = contrib/thread-pool
+	url = https://github.com/bshoshany/thread-pool.git
+[submodule "contrib/simde"]
+	path = contrib/simde
+	url = https://github.com/simd-everywhere/simde

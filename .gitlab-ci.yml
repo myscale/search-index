@@ -1,0 +1,56 @@
+image: harbor.internal.moqi.ai/mqdb/search-index-builder:1.5.2
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+
+variables:
+  http_proxy: "http://clash.internal.moqi.ai:7890"
+  https_proxy: "http://clash.internal.moqi.ai:7890"
+  no_proxy: "git.moqi.ai,localhost,127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+.init-git-submodule: &init-git-submodule
+  - mkdir -p ~/.ssh
+  - echo "$BUILDER_PRIVATE_SSH_KEY" > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+  - ssh-keyscan -H git.moqi.ai > ~/.ssh/known_hosts
+  - git clean -d -f -f -x
+  - git submodule sync --recursive
+  - git submodule update --init --force --recursive
+  - git submodule foreach --recursive git clean -d -f -f -x
+  - mkdir -pv /usr/lib/ccache && /usr/sbin/update-ccache-symlinks
+  - export PATH="/usr/lib/ccache:$PATH"
+
+stages:
+  - pre-check
+  - build-and-test
+
+lint:
+  stage: pre-check
+  before_script:
+    - *init-git-submodule
+    - pre-commit install
+  script:
+    - pre-commit run --from-ref HEAD^ --to-ref HEAD
+
+build:
+  stage: build-and-test
+  retry: 2
+  variables:
+    KUBERNETES_CPU_REQUEST: 8
+    KUBERNETES_CPU_LIMIT: 8
+    KUBERNETES_MEMORY_REQUEST: 16Gi
+    KUBERNETES_MEMORY_LIMIT: 16Gi
+  before_script:
+    - *init-git-submodule
+  script:
+    - mkdir -p ${CI_PROJECT_DIR}/python/ann-data
+    - cd ${CI_PROJECT_DIR}/python/ann-data && unset http_proxy && unset https_proxy && wget http://10.1.2.10/arxiv-embeddings-ada-002-cosine-filter.h5 &>/dev/null
+    - cd ${CI_PROJECT_DIR}
+    - mkdir -p build
+    - cd build && CC=clang-15 CXX=clang++-15 cmake .. && make -j 6
+    - STRESS_TEST=60 ../scripts/run_tests.sh
+
