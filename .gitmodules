@@ -1,6 +1,6 @@
 [submodule "contrib/faiss"]
 	path = contrib/faiss
-	url = git@github.com:myscale/faiss.git
+	url = https://github.com/myscale/faiss.git
 [submodule "contrib/scann/contrib/abseil-cpp"]
 	path = contrib/scann/contrib/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp.git
