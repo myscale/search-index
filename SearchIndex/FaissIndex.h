@@ -236,6 +236,8 @@ public:
     static const size_t VERION_MINOR = 0;
     static const size_t VERION_PATCH = 0;
 
+    static inline const std::string FAISS_INDEX_DATA_BIN = "data_bin";
+
     static std::unordered_set<IndexType> binaryIndexTypes()
     {
         return {
@@ -408,7 +410,7 @@ public:
         this->status = IndexStatus::LOADING;
 
         SI_LOG_INFO("{} starts loading", this->getName());
-        auto in_stream = reader->getFieldDataInputStream(this->getName());
+        auto in_stream = reader->getFieldDataInputStream(FAISS_INDEX_DATA_BIN);
         FaissIOReader faiss_reader("faiss_index_reader", in_stream.get());
         FaissIndexPtr index_load
             = FaissDataTypeHelper<dataType>::readIndex(&faiss_reader);
@@ -427,7 +429,7 @@ public:
     void serializeImpl(IndexDataWriter<OS> * writer) override
     {
         SI_LOG_INFO("FaissIndex serialize");
-        auto out_stream = writer->getFieldDataOutputStream(this->getName());
+        auto out_stream = writer->getFieldDataOutputStream(FAISS_INDEX_DATA_BIN);
         FaissIOWriter faiss_writer("faiss_index_writer", out_stream.get());
         FaissDataTypeHelper<dataType>::writeIndex(index(), &faiss_writer);
     }

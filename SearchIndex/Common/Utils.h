@@ -182,11 +182,7 @@ std::string vectorToString(
 };
 
 #ifdef MYSCALE_MODE
-#    ifdef MYSCALE_WITH_UPGRADE
 #        include <Common/logger_useful.h>
-#    else
-#        include <base/logger_useful.h>
-#    endif
 
 inline Poco::Logger * get_logger()
 {
