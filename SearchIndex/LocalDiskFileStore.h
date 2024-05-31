@@ -45,14 +45,17 @@ public:
     // Perform read & write in 64MB blocks for maximal efficiency
     static const size_t IO_BLOCK_SIZE = 64000000;
     static inline const std::string CHECKSUM_SUFFIX = ".checksum";
+    using isTerminationCall = std::function<bool()>;
 
     LocalDiskFileStore(
         const std::string & base_path_,
         bool use_checksum_,
-        bool manage_cache_folder_ = false) :
+        bool manage_cache_folder_ = false,
+        isTerminationCall is_termination_call_ = {}) :
         base_path(base_path_),
         use_checksum(use_checksum_),
-        manage_cache_folder(manage_cache_folder_)
+        manage_cache_folder(manage_cache_folder_),
+        is_termination_call(is_termination_call_)
     {
         if (manage_cache_folder)
         {
@@ -80,6 +83,11 @@ public:
     {
         if (manage_cache_folder)
         {
+            if (is_termination_call && is_termination_call())
+            {
+                SI_LOG_DEBUG("Server In terminate state, does not remove cache folder {}", base_path);
+                return;
+            }
             SI_LOG_INFO("Removing cache folder {}", base_path);
             if (std::filesystem::exists(base_path))
             {
@@ -332,6 +340,7 @@ private:
     std::unordered_map<std::string, std::string> name_to_files;
     std::unordered_set<std::string> removed_files;
     std::unordered_set<std::string> temporary_files;
+    isTerminationCall is_termination_call;
 };
 
 }
