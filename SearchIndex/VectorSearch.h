@@ -55,6 +55,46 @@ inline static const std::vector<IndexType> FLOAT_VECTOR_INDEX_TEST_TYPES = {
 #endif
 };
 
+
+/**
+ * \brief create VectorIndex index, a simple overload of createVectorIndex function
+ * 
+ * \param name name of the name of index
+ * \param metric metric of index
+ * \param data_dim data dim of index
+ * \param max_points max points of index
+ * \param params create index parameters
+ * \param max_threads max threads
+ * \param file_store_prefix file store prefix
+ * \param is_termination_call server is termination call
+ * 
+ * \return shared pointer VectorIndex instance
+*/
+template <typename IS, typename OS, IDSelector IDS, DataType dataType>
+std::shared_ptr<VectorIndex<IS, OS, IDS, dataType>> createVectorIndex(
+    const std::string & name,
+    IndexType index_type,
+    Metric metric,
+    size_t data_dim,
+    size_t max_points,
+    const Parameters & params,
+    [[maybe_unused]] const size_t max_threads,
+    const std::string & file_store_prefix = "",
+    [[maybe_unused]] std::function<bool()> is_termination_call = {})
+{
+    return createVectorIndex<IS, OS, IDS, dataType>(
+        name,
+        index_type,
+        metric,
+        data_dim,
+        max_points,
+        params,
+        file_store_prefix,
+        true,
+        true,
+        is_termination_call);
+}
+
 /**
  * \brief create VectorIndex index
  *
@@ -74,7 +114,8 @@ std::shared_ptr<VectorIndex<IS, OS, IDS, dataType>> createVectorIndex(
     const Parameters & params,
     [[maybe_unused]] const std::string & file_store_prefix = "",
     [[maybe_unused]] bool use_file_checksum = false,
-    [[maybe_unused]] bool manage_cache_folder = false)
+    [[maybe_unused]] bool manage_cache_folder = false,
+    [[maybe_unused]] std::function<bool()> is_termination_call = {})
 {
     switch (index_type)
     {
