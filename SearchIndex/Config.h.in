@@ -18,5 +18,6 @@
 
 #pragma once
 
+#cmakedefine MYSCALE_MODE
 #cmakedefine ENABLE_FAISS
 #cmakedefine ENABLE_SCANN
