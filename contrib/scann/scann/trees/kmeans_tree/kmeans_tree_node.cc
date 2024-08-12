@@ -155,6 +155,7 @@ Status KMeansTreeNode::Train(const Dataset& training_data,
                              const DistanceMeasure& training_distance,
                              const KMeansTreeConfig& config, int32_t current_level,
                              KMeansTreeTrainingOptions* opts) {
+  this->node_level_ = current_level;
   indices_ = std::move(subset);
   if (indices_.size() <= opts->max_leaf_size) {
     return OkStatus();

@@ -630,10 +630,9 @@ ScaNNIndex<IS, OS, IDS, dataType>::extractSearchParams(
     // auto-tuned advanced parameters
 
     // num_reorder grows sublinearly with topK
-    uint32_t default_num_reorder = std::max(
-        static_cast<uint32_t>(topK),
+    uint32_t default_num_reorder =
         static_cast<uint32_t>(
-            20 * std::floor(std::pow(topK, 0.65f) * std::sqrt(alpha))));
+            20 * std::floor(std::pow(topK, 0.65f) * std::sqrt(alpha)));
     // num_reorder grows sublinearly with num_data for large datasets
     if (num_data > 10000000)
         default_num_reorder *= std::pow(num_data / 1e7f, 0.5);
@@ -645,6 +644,7 @@ ScaNNIndex<IS, OS, IDS, dataType>::extractSearchParams(
     if (disk_mode == 0)
         default_num_reorder *= 2.5;
 
+    default_num_reorder = std::max(static_cast<uint32_t>(topK), default_num_reorder);
     uint32_t num_reorder
         = params.extractParam("num_reorder", default_num_reorder);
     return {alpha, num_reorder};
@@ -659,6 +659,7 @@ std::shared_ptr<SearchResult> ScaNNIndex<IS, OS, IDS, dataType>::searchImpl(
     IDS * filter,
     QueryStats * stats)
 {
+    using namespace std;
     auto t0 = std::chrono::high_resolution_clock::now();
     auto data_dim = this->dataDimension();
     SI_THROW_IF_NOT(queries->dimension() == data_dim, ErrorCode::BAD_ARGUMENTS);
@@ -691,7 +692,6 @@ std::shared_ptr<SearchResult> ScaNNIndex<IS, OS, IDS, dataType>::searchImpl(
     // only use adaptive_search when `l_search_ratio` is not specified in search params
     if (l_search_ratio < 0 && adaptive_search && filter)
     {
-        using namespace std;
         float inv_ratio = 1.0f / this->estimateFilterRatio(filter);
         // when filter ratio is below 0.05, every time it's quartered,
         //   increase l_search by about 1.5x
@@ -722,6 +722,13 @@ std::shared_ptr<SearchResult> ScaNNIndex<IS, OS, IDS, dataType>::searchImpl(
         // calculate l_search from l_search_ratio
         l_search = static_cast<uint32_t>(l_search_ratio * num_leaf_nodes);
         l_search = std::min(l_search, num_leaf_nodes);
+    }
+
+    // adjust l_search for large top-k
+    auto leaf_nodes = this->getNumLeafNodes();
+    if (0.5 * l_search / leaf_nodes * this->max_points < topK) {
+        l_search = max(l_search, static_cast<uint32_t>(2 * topK * leaf_nodes / this->max_points));
+        l_search = min(l_search, leaf_nodes);
     }
 
     raiseErrorOnUnknownParams(params);
