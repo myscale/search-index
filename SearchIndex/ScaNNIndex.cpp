@@ -630,9 +630,8 @@ ScaNNIndex<IS, OS, IDS, dataType>::extractSearchParams(
     // auto-tuned advanced parameters
 
     // num_reorder grows sublinearly with topK
-    uint32_t default_num_reorder =
-        static_cast<uint32_t>(
-            20 * std::floor(std::pow(topK, 0.65f) * std::sqrt(alpha)));
+    uint32_t default_num_reorder = static_cast<uint32_t>(
+        20 * std::floor(std::pow(topK, 0.65f) * std::sqrt(alpha)));
     // num_reorder grows sublinearly with num_data for large datasets
     if (num_data > 10000000)
         default_num_reorder *= std::pow(num_data / 1e7f, 0.5);
@@ -644,7 +643,8 @@ ScaNNIndex<IS, OS, IDS, dataType>::extractSearchParams(
     if (disk_mode == 0)
         default_num_reorder *= 2.5;
 
-    default_num_reorder = std::max(static_cast<uint32_t>(topK), default_num_reorder);
+    default_num_reorder
+        = std::max(static_cast<uint32_t>(topK), default_num_reorder);
     uint32_t num_reorder
         = params.extractParam("num_reorder", default_num_reorder);
     return {alpha, num_reorder};
@@ -689,8 +689,11 @@ std::shared_ptr<SearchResult> ScaNNIndex<IS, OS, IDS, dataType>::searchImpl(
 
     float l_search_ratio = params.extractParam("l_search_ratio", -1.0f);
     bool adaptive_search = params.extractParam("adaptive_search", 1);
-    // only use adaptive_search when `l_search_ratio` is not specified in search params
-    if (l_search_ratio < 0 && adaptive_search && filter)
+    // Only use adaptive_search when `l_search_ratio` is not specified in search params
+    //   and when dataset is not very large (<= 8M).
+    // For large datasets, adaptive_search is not required for desired accuracy.
+    if (l_search_ratio < 0 && adaptive_search && filter
+        && this->numData() < 8e6)
     {
         float inv_ratio = 1.0f / this->estimateFilterRatio(filter);
         // when filter ratio is below 0.05, every time it's quartered,
@@ -726,8 +729,11 @@ std::shared_ptr<SearchResult> ScaNNIndex<IS, OS, IDS, dataType>::searchImpl(
 
     // adjust l_search for large top-k
     auto leaf_nodes = this->getNumLeafNodes();
-    if (0.5 * l_search / leaf_nodes * this->max_points < topK) {
-        l_search = max(l_search, static_cast<uint32_t>(2 * topK * leaf_nodes / this->max_points));
+    if (0.5 * l_search / leaf_nodes * this->max_points < topK)
+    {
+        l_search = max(
+            l_search,
+            static_cast<uint32_t>(2 * topK * leaf_nodes / this->max_points));
         l_search = min(l_search, leaf_nodes);
     }
 
@@ -746,12 +752,7 @@ std::shared_ptr<SearchResult> ScaNNIndex<IS, OS, IDS, dataType>::searchImpl(
 
     // get parameters and perform search
     auto scann_params = getScannSearchParametersBatched(
-        queries->numData(),
-        topK,
-        num_reorder,
-        l_search,
-        true,
-        filter);
+        queries->numData(), topK, num_reorder, l_search, true, filter);
     std::vector<research_scann::NNResultsVector> res(queries->numData());
     research_scann::DenseDataWrapper<T> queries_data_wrapper(
         const_cast<T *>(queries->getData()),
@@ -760,9 +761,7 @@ std::shared_ptr<SearchResult> ScaNNIndex<IS, OS, IDS, dataType>::searchImpl(
         queries_data_wrapper, queries->numData());
     research_scann::Status status;
     status = scann->FindNeighborsBatched(
-        queries_dataset,
-        scann_params,
-        research_scann::MakeMutableSpan(res));
+        queries_dataset, scann_params, research_scann::MakeMutableSpan(res));
     int result_len = topK;
     SI_THROW_IF_NOT_FMT(
         status.ok(),
